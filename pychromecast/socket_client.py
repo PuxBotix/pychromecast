@@ -325,12 +325,13 @@ class SocketClient(threading.Thread):
         # If channel is not open yet, connect to it.
         self._ensure_channel_connected(destination_id)
 
-        if not no_add_request_id:
-            request_id = self._gen_request_id()
-            data[REQUEST_ID] = request_id
+        if isinstance(data, dict):
+            if not no_add_request_id:
+                request_id = self._gen_request_id()
+                data[REQUEST_ID] = request_id
 
-        if inc_session_id:
-            data[SESSION_ID] = self.session_id
+            if inc_session_id:
+                data[SESSION_ID] = self.session_id
 
         # pylint: disable=no-member
         msg = cast_channel_pb2.CastMessage()
@@ -340,7 +341,11 @@ class SocketClient(threading.Thread):
         msg.destination_id = destination_id
         msg.payload_type = cast_channel_pb2.CastMessage.STRING
         msg.namespace = namespace
-        msg.payload_utf8 = _json_to_payload(data)
+
+        if isinstance(data, dict):
+            msg.payload_utf8 = _json_to_payload(data)
+        else:
+            msg.payload_utf8 = data
 
         # prepend message with Big-Endian 4 byte payload size
         be_size = pack(">I", msg.ByteSize())
